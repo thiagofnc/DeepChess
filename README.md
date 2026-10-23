@@ -16,3 +16,15 @@ Unannotated games are scanned over the network but are not saved.
 
 Optional: `--max-games 500`, `--year 2024 --month 1`, `--output data/sample.jsonl`, or
 `--revision <commit-hash>`. Existing output files are never overwritten.
+
+## Average-evaluation baseline
+
+```powershell
+python scripts/download_data.py --max-games 500 --year 2013 --month 1 --output data/regressor_games.jsonl
+python scripts/train_regressor.py
+```
+
+The script averages all numeric evaluations in the 500 games and prints one
+number. `predict(position)` always returns that average. Scores are in pawns
+from White's perspective; mate annotations are skipped. Uses only Python's
+standard library.
