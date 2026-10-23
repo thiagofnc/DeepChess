@@ -17,3 +17,4 @@ plotly[express]
 transformers
 anywidget
 umap-learn
+datasets>=4.0,<5
