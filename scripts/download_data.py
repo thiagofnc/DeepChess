@@ -29,7 +29,7 @@ def json_default(value):
     raise TypeError(f"Cannot serialize {type(value).__name__}")
 
 
-def save_evaluated_games(games, output, max_games, progress_every=10_000):
+def save_evaluated_games(games, output, max_games=None, progress_every=10_000):
     """Save complete matching rows as JSONL; never overwrite an existing file."""
     scanned = saved = 0
     output = Path(output)
@@ -43,7 +43,7 @@ def save_evaluated_games(games, output, max_games, progress_every=10_000):
             if isinstance(movetext, str) and EVAL_PATTERN.search(movetext):
                 handle.write(json.dumps(game, default=json_default, ensure_ascii=False) + "\n")
                 saved += 1
-                if saved >= max_games:
+                if max_games is not None and saved >= max_games:
                     break
             if scanned % progress_every == 0:
                 print(f"Scanned {scanned:,} games; saved {saved:,}.", flush=True)
@@ -52,8 +52,8 @@ def save_evaluated_games(games, output, max_games, progress_every=10_000):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--max-games", type=positive_int, default=10_000,
-                        help="Number of matching games to save (default: 10000).")
+    parser.add_argument("--max-games", type=positive_int,
+                        help="Optional limit on matching games (default: save all).")
     parser.add_argument("--output", type=Path,
                         default=Path("data/stockfish_games.jsonl"))
     parser.add_argument("--year", type=positive_int,
@@ -78,13 +78,14 @@ def main():
         month = f"{args.month:02d}" if args.month is not None else "*"
         options["data_files"] = f"data/year={args.year}/month={month}/train-*.parquet"
 
-    print(f"Streaming {DATASET} at {args.revision}; target: {args.max_games:,} evaluated games.",
+    target = "all evaluated games" if args.max_games is None else f"{args.max_games:,} evaluated games"
+    print(f"Streaming {DATASET} at {args.revision}; target: {target}.",
           flush=True)
     games = load_dataset(DATASET, split="train", streaming=True,
                          revision=args.revision, **options)
     scanned, saved = save_evaluated_games(games, args.output, args.max_games)
     print(f"Saved {saved:,} evaluated games to {args.output} (scanned {scanned:,}).")
-    if saved < args.max_games:
+    if args.max_games is not None and saved < args.max_games:
         print("Selected source exhausted before reaching --max-games.", file=sys.stderr)
 
 
