@@ -29,7 +29,7 @@ def json_default(value):
     raise TypeError(f"Cannot serialize {type(value).__name__}")
 
 
-def save_evaluated_games(games, output, max_games=None, progress_every=10_000):
+def save_evaluated_games(games, output, max_games=500, progress_every=10_000):
     """Save complete matching rows as JSONL; never overwrite an existing file."""
     scanned = saved = 0
     output = Path(output)
@@ -52,10 +52,10 @@ def save_evaluated_games(games, output, max_games=None, progress_every=10_000):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--max-games", type=positive_int,
-                        help="Optional limit on matching games (default: save all).")
+    parser.add_argument("--max-games", type=positive_int, default=500,
+                        help="Number of matching games to save (default: 500).")
     parser.add_argument("--output", type=Path,
-                        default=Path("data/stockfish_games.jsonl"))
+                        default=Path("data/baseline_stockfish_games.jsonl"))
     parser.add_argument("--year", type=positive_int,
                         help="Only scan this year's Parquet files.")
     parser.add_argument("--month", type=int, choices=range(1, 13),
