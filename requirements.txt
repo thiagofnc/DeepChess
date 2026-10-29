@@ -1,5 +1,7 @@
 # AI, Machine Learning & Data Science Baseline
 torchvision
+torch
+python-chess>=1.999,<2
 pandas
 numpy
 scikit-learn
