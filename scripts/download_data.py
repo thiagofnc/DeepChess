@@ -55,7 +55,7 @@ def main():
     parser.add_argument("--max-games", type=positive_int, default=500,
                         help="Number of matching games to save (default: 500).")
     parser.add_argument("--output", type=Path,
-                        default=Path("data/baseline_stockfish_games.jsonl"))
+                        default=Path("local_data/baseline_stockfish_games.jsonl"))
     parser.add_argument("--year", type=positive_int,
                         help="Only scan this year's Parquet files.")
     parser.add_argument("--month", type=int, choices=range(1, 13),
@@ -76,7 +76,7 @@ def main():
     options = {}
     if args.year is not None:
         month = f"{args.month:02d}" if args.month is not None else "*"
-        options["data_files"] = f"data/year={args.year}/month={month}/train-*.parquet"
+        options["data_files"] = f"local_data/year={args.year}/month={month}/train-*.parquet"
 
     target = "all evaluated games" if args.max_games is None else f"{args.max_games:,} evaluated games"
     print(f"Streaming {DATASET} at {args.revision}; target: {target}.",

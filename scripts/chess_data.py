@@ -9,7 +9,7 @@ import random
 import chess.pgn
 
 
-DEFAULT_INPUT = Path(__file__).resolve().parents[1] / "data/regressor_games.jsonl"
+DEFAULT_INPUT = Path(__file__).resolve().parents[1] / "local_data/regressor_games.jsonl"
 
 
 def load_games(path=DEFAULT_INPUT, max_games=None):
