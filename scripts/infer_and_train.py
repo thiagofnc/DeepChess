@@ -242,13 +242,8 @@ def run_training(args):
     # Makes sure to move everything to the correct device
     model = load_model(args.init_weights) if args.init_weights else deepChess().to(device)
 
-    # Using momentum and weight decay with SGD. 
-    # Momentum should help deal with noise and small bumps
-    # Weight decay should help deal with overfitting
-    # TODO: This is something that can definitely be changed,
-    # but for now I feel like this is a good starting point.
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr,
-                            momentum=args.momentum, nesterov=True,
+    # Using AdamW
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr,
                             weight_decay=args.weight_decay)
     # Use MSE loss.
     criterion = nn.MSELoss()
@@ -275,10 +270,10 @@ def build_parser():
     tr.add_argument("--checkpoint_path", default="local_data/new_weights.pt")
     tr.add_argument("--init_weights", default=None, help="Optional weights file to start from instead of random init")
     tr.add_argument("--epochs", type=int, default=10)
-    tr.add_argument("--batch_size", type=int, default=256)
-    tr.add_argument("--lr", type=float, default=0.01)
+    tr.add_argument("--batch_size", type=int, default=1024)
+    tr.add_argument("--lr", type=float, default=2e-3)
     tr.add_argument("--weight_decay", type=float, default=1e-4)
-    tr.add_argument("--momentum", type=float, default=0.9)
+    # tr.add_argument("--momentum", type=float, default=0.9)
     tr.add_argument("--seed", type=int, default=0)
     
 
