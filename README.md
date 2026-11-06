@@ -77,7 +77,7 @@ python infer_and_train.py train --init_weights data/model_weights.pt --lr 0.002
 
 Training details:
 
-- Optimizer is SGD with Nesterov momentum, and the loss is MSE.
+- Optimizer is AdamW, and the loss is MSE.
 - Gradients are clipped to a norm of 5.0, and training stops with an error if the loss or validation error becomes non-finite.
 - Games are split 80/10/10 into train/validation/test **before** positions are extracted, so positions from one game never appear in more than one split. The split uses a fixed seed (42) from `chess_data.py`.
 - The test portion of the split is not used or saved during training.
