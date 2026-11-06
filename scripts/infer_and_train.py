@@ -8,17 +8,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
- 
+import argparse
+import sys
+
 from chess_data import evaluated_positions, regression_metrics
-
-
-# Define paths and constants
-DATA_PATH = "data/test_data_basic.npz"
-WEIGHTS_PATH = "data/model_weights.pt"
-TRAINING_WEIGHTS_PATH = "data/new_weights.pt"
-BATCH_SIZE = 4096
-# TODO: Replace actual mean with the mean of the training set evaluations
-BASELINE_VALUE = 0.0
 
 # Use GPU if available
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -128,7 +121,7 @@ def load_model(weights_path):
     return model
 
 
-def evaluate(model, loader):
+def evaluate(model, loader, baseline_value):
     model.eval()
     actual, predicted = [], []
     with torch.no_grad():
@@ -137,7 +130,7 @@ def evaluate(model, loader):
             predicted.extend(model(features.to(device)).flatten().tolist())
     return {
         "cnn": regression_metrics(actual, predicted),
-        "baseline": regression_metrics(actual, [BASELINE_VALUE] * len(actual)),
+        "baseline": regression_metrics(actual, [baseline_value] * len(actual)),
     }
 
 
@@ -196,23 +189,46 @@ def make_dataset(games):
     return TensorDataset(features, targets), labels
 
 
+def run_inference(args):
+    """Runs inference based on provided arguments."""
+    # Inference data: x is board position, y is eval
+    data = np.load(args.data_path)
+    test_set = TensorDataset(torch.from_numpy(data["x"]).float(),
+                            torch.from_numpy(data["y"]).float())
+    
+    loader = DataLoader(test_set, batch_size=args.batch_size)
+    model = load_model(args.weights_path)
+        
+    # Run once after selecting the model; do not tune hyperparameters on test error.
+    test_metrics = evaluate(model, loader, args.baseline_value)
+    print("Held-out test metrics (pawns):")
+    print(json.dumps(test_metrics, indent=2))
 
-# Inference data: x is board position, y is eval
-data = np.load(DATA_PATH)
-test_set = TensorDataset(torch.from_numpy(data["x"]).float(),
-                         torch.from_numpy(data["y"]).float())
- 
-loaders = {"test": DataLoader(test_set, batch_size=BATCH_SIZE)}
- 
-model = load_model(WEIGHTS_PATH)
- 
-# TODO (training, not fixed yet)
- 
- 
-# Run once after selecting the model; do not tune hyperparameters on test error.
-test_metrics = evaluate(model, loaders["test"])
-print("Held-out test metrics (pawns):")
-print(json.dumps(test_metrics, indent=2))
+    print("cost (MSE):", test_metrics["cnn"]["rmse_pawns"] ** 2)
+    print("average eval error (pawns):", test_metrics["cnn"]["mae_pawns"])
 
-print("cost (MSE):", test_metrics["cnn"]["rmse_pawns"] ** 2)
-print("average eval error (pawns):", test_metrics["cnn"]["mae_pawns"])
+
+def build_parser():
+    parser = argparse.ArgumentParser(description="DeepChess evaluation network")
+    sub = parser.add_subparsers(dest="command")
+
+    ev = sub.add_parser("evaluate", help="Report test-set metrics for saved weights")
+    ev.add_argument("--data_path", default="data/test_data_basic.npz")
+    ev.add_argument("--weights_path", default="data/model_weights.pt")
+    ev.add_argument("--batch_size", type=int, default=4096)
+    ev.add_argument("--baseline_value", type=float, default=0.0)
+    return parser
+
+
+COMMANDS = {"evaluate": run_inference}
+
+def main(argv=None):
+    argv = sys.argv[1:] if argv is None else argv
+    # If a subcommand is not given just default to acting like before
+    if not argv or (argv[0] not in COMMANDS and argv[0] not in ("-h", "--help")):
+        argv = ["evaluate", *argv]
+    args = build_parser().parse_args(argv)
+    COMMANDS[args.command](args)
+
+if __name__ == "__main__":
+    main()
