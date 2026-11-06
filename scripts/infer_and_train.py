@@ -151,6 +151,9 @@ def train_model(model, optimizer, criterion, train_loader, validation_loader, ep
         model.train()
         total_loss = 0.0
         for features, targets in train_loader:
+            # Move features and targets to the appropriate device (CPU or GPU)
+            features, targets = features.to(device), targets.to(device)
+            
             optimizer.zero_grad()
             loss = criterion(model(features), targets)
             if not torch.isfinite(loss):
