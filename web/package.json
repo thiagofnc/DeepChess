@@ -1,0 +1,25 @@
+{
+  "name": "deepchess-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Play against DeepChess in the browser and explore what the network sees.",
+  "scripts": {
+    "prepare:vendor": "node scripts/copy-vendor.mjs",
+    "dev": "npm run prepare:vendor && vite",
+    "build": "npm run prepare:vendor && tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types test/parity.test.ts"
+  },
+  "dependencies": {
+    "chess.js": "^1.4.0",
+    "onnxruntime-web": "^1.31.1",
+    "stockfish": "^19.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.6"
+  }
+}

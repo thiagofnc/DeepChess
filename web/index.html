@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <title>DeepChess — play the network</title>
+    <meta name="description" content="Play chess against a convolutional neural network that runs entirely in your browser, and explore its layer activations." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%99%9E%3C/text%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <header class="top">
+      <h1><span class="logo">♞</span> DeepChess</h1>
+      <nav class="tabs" id="tabs">
+        <button data-tab="play" class="on">Play</button>
+        <button data-tab="explore">Explore the network</button>
+      </nav>
+      <span class="backend" id="backend" title="Where the neural network runs"></span>
+    </header>
+    <main>
+      <div id="loading" class="loading"><div class="spin"></div><p id="loadTxt">Loading…</p></div>
+      <div id="play"></div>
+      <div id="explore" hidden></div>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
