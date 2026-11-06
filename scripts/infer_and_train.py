@@ -210,6 +210,55 @@ def run_inference(args):
     print("average eval error (pawns):", test_metrics["cnn"]["mae_pawns"])
 
 
+def run_training(args):
+    torch.manual_seed(args.seed)
+
+    # Load some number of games
+    games = load_games(args.games_path, max_games=args.max_games)
+    # Split the games into train, validation, and test, 
+    # nothing is done with the test portion in training
+    # TODO: Whoever wrote chess_data.py should figure out
+    # if keeping a portion of the data for test only is actually what we want
+    # atleast the test portion should be saved for a file so we use it during inference or something.
+    splits = split_games(games)
+
+    # Build tensors for train and validation
+    # the "labels" are kinda reduntant since the scorings are already in the tensor,
+    # but they make it easy to get the baseline
+    train_set, train_labels = make_dataset(splits["train"])
+    val_set, _ = make_dataset(splits["validation"])
+
+    # Get the baseline value to compare to.
+    baseline = sum(train_labels) / len(train_labels)
+    # Shows how many entries are being trained on and validated with and what the baseline is
+    print(f"train positions: {len(train_set)}, validation positions: {len(val_set)}, "
+          f"baseline (train mean): {baseline:.4f}")
+
+    # Build the torch data loaders.
+    train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
+    val_loader = DataLoader(val_set, batch_size=args.batch_size)
+
+    # If there are already weights given, start there, otherwise init a fresh model. 
+    # Makes sure to move everything to the correct device
+    model = load_model(args.init_weights) if args.init_weights else deepChess().to(device)
+
+    # Using momentum and weight decay with SGD. 
+    # Momentum should help deal with noise and small bumps
+    # Weight decay should help deal with overfitting
+    # TODO: This is something that can definitely be changed,
+    # but for now I feel like this is a good starting point.
+    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr,
+                            momentum=args.momentum, nesterov=True,
+                            weight_decay=args.weight_decay)
+    # Use MSE loss.
+    criterion = nn.MSELoss()
+
+    # Train
+    train_model(model, optimizer, criterion, train_loader, val_loader,
+                args.epochs, baseline, checkpoint_path=args.checkpoint_path)
+    print("Done.")
+
+
 def build_parser():
     parser = argparse.ArgumentParser(description="DeepChess evaluation network")
     sub = parser.add_subparsers(dest="command")
@@ -219,10 +268,24 @@ def build_parser():
     ev.add_argument("--weights_path", default="data/model_weights.pt")
     ev.add_argument("--batch_size", type=int, default=4096)
     ev.add_argument("--baseline_value", type=float, default=0.0)
+
+    tr = sub.add_parser("train", help="Train the network and save the best checkpoint")
+    tr.add_argument("--games_path", default=str(DEFAULT_INPUT))
+    tr.add_argument("--max_games", type=int, default=None)
+    tr.add_argument("--checkpoint_path", default="local_data/new_weights.pt")
+    tr.add_argument("--init_weights", default=None, help="Optional weights file to start from instead of random init")
+    tr.add_argument("--epochs", type=int, default=10)
+    tr.add_argument("--batch_size", type=int, default=256)
+    tr.add_argument("--lr", type=float, default=0.01)
+    tr.add_argument("--weight_decay", type=float, default=1e-4)
+    tr.add_argument("--momentum", type=float, default=0.9)
+    tr.add_argument("--seed", type=int, default=0)
+    
+
     return parser
 
 
-COMMANDS = {"evaluate": run_inference}
+COMMANDS = {"evaluate": run_inference, "train": run_training}
 
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv

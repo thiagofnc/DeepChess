@@ -55,7 +55,7 @@ def main():
     parser.add_argument("--max-games", type=positive_int, default=500,
                         help="Number of matching games to save (default: 500).")
     parser.add_argument("--output", type=Path,
-                        default=Path("local_data/baseline_stockfish_games.jsonl"))
+                        default=Path("local_data/regressor_games.jsonl"))
     parser.add_argument("--year", type=positive_int,
                         help="Only scan this year's Parquet files.")
     parser.add_argument("--month", type=int, choices=range(1, 13),
