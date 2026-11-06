@@ -153,7 +153,6 @@ def train_model(model, optimizer, criterion, train_loader, validation_loader, ep
         for features, targets in train_loader:
             # Move features and targets to the appropriate device (CPU or GPU)
             features, targets = features.to(device), targets.to(device)
-            
             optimizer.zero_grad()
             loss = criterion(model(features), targets)
             if not torch.isfinite(loss):
@@ -170,8 +169,11 @@ def train_model(model, optimizer, criterion, train_loader, validation_loader, ep
             best_rmse = rmse
             best_state = deepcopy(model.state_dict())
             if checkpoint_path is not None:
-                torch.save({"model_state_dict": best_state, "epoch": epoch + 1,
-                            "validation": validation}, checkpoint_path)
+                # Previously used checkpoint format
+                # torch.save({"model_state_dict": best_state, "epoch": epoch + 1,
+                #             "validation": validation}, checkpoint_path)
+                # New checkpoint format to match the inferance loader
+                torch.save(best_state, checkpoint_path)
         history.append({"epoch": epoch + 1,
                         "train_mse": total_loss / len(train_loader.dataset),
                         "validation": validation})
