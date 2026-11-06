@@ -1,7 +1,6 @@
 import json
 from copy import deepcopy
 from pathlib import Path
- 
 import chess
 import numpy as np
 import torch
@@ -11,7 +10,7 @@ from torch.utils.data import DataLoader, TensorDataset
 import argparse
 import sys
 
-from chess_data import evaluated_positions, regression_metrics
+from chess_data import (DEFAULT_INPUT, evaluated_positions, load_games, regression_metrics, split_games)
 
 # Use GPU if available
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -134,7 +133,7 @@ def evaluate(model, loader, baseline_value):
     }
 
 
-def train_model(model, optimizer, criterion, train_loader, validation_loader, epochs, checkpoint_path=None):
+def train_model(model, optimizer, criterion, train_loader, validation_loader, epochs, baseline_value, checkpoint_path=None):
     if epochs < 1:
         raise ValueError("epochs must be positive")
     best_rmse = float("inf")
@@ -154,7 +153,7 @@ def train_model(model, optimizer, criterion, train_loader, validation_loader, ep
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0, error_if_nonfinite=True)
             optimizer.step()
             total_loss += loss.item() * len(targets)
-        validation = evaluate(model, validation_loader)
+        validation = evaluate(model, validation_loader, baseline_value)
         rmse = validation["cnn"]["rmse_pawns"]
         if not np.isfinite(rmse):
             raise RuntimeError("Non-finite validation error; check labels and learning rate")
@@ -162,6 +161,9 @@ def train_model(model, optimizer, criterion, train_loader, validation_loader, ep
             best_rmse = rmse
             best_state = deepcopy(model.state_dict())
             if checkpoint_path is not None:
+                # make the checkpoint folder if it doesnt exist
+                checkpoint_path = Path(checkpoint_path)
+                checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
                 # Previously used checkpoint format
                 # torch.save({"model_state_dict": best_state, "epoch": epoch + 1,
                 #             "validation": validation}, checkpoint_path)
