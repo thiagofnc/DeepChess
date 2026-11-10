@@ -8,6 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
 import argparse
+import random
 import sys
 
 from chess_data import (DEFAULT_INPUT, evaluated_positions, load_games, regression_metrics, split_games)
@@ -133,7 +134,7 @@ def evaluate(model, loader, baseline_value):
     }
 
 
-def train_model(model, optimizer, criterion, train_loader, validation_loader, epochs, baseline_value, checkpoint_path=None):
+def train_model(model, optimizer, criterion, train_games, validation_games, batch_size, epochs, baseline_value, checkpoint_path=None):
     if epochs < 1:
         raise ValueError("epochs must be positive")
     best_rmse = float("inf")
@@ -142,7 +143,8 @@ def train_model(model, optimizer, criterion, train_loader, validation_loader, ep
     for epoch in range(epochs):
         model.train()
         total_loss = 0.0
-        for features, targets in train_loader:
+        num_positions = 0
+        for features, targets in make_batches(train_games, batch_size, shuffle=True):
             # Move features and targets to the appropriate device (CPU or GPU)
             features, targets = features.to(device), targets.to(device)
             optimizer.zero_grad()
@@ -153,7 +155,8 @@ def train_model(model, optimizer, criterion, train_loader, validation_loader, ep
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0, error_if_nonfinite=True)
             optimizer.step()
             total_loss += loss.item() * len(targets)
-        validation = evaluate(model, validation_loader, baseline_value)
+            num_positions += len(targets)
+        validation = evaluate(model, make_batches(validation_games, batch_size, shuffle=False), baseline_value)
         rmse = validation["cnn"]["rmse_pawns"]
         if not np.isfinite(rmse):
             raise RuntimeError("Non-finite validation error; check labels and learning rate")
@@ -170,7 +173,7 @@ def train_model(model, optimizer, criterion, train_loader, validation_loader, ep
                 # New checkpoint format to match the inferance loader
                 torch.save(best_state, checkpoint_path)
         history.append({"epoch": epoch + 1,
-                        "train_mse": total_loss / len(train_loader.dataset),
+                        "train_mse": total_loss / num_positions,
                         "validation": validation})
         print(json.dumps(history[-1]))
     # Select the checkpoint using validation only; test games are not used here.
@@ -191,16 +194,29 @@ def make_dataset(games):
     return TensorDataset(features, targets), labels
 
 
+# How many games get turned into tensors at once. Making the tensors for every game
+# at the same time used too much memory, so we do it a chunk at a time instead.
+GAMES_PER_CHUNK = 2000
+
+
+def make_batches(games, batch_size, shuffle):
+    """Gives batches of (features, targets) for all the games, one chunk of games at a time."""
+    if shuffle:
+        games = list(games)
+        random.shuffle(games)
+    for start in range(0, len(games), GAMES_PER_CHUNK):
+        chunk_set, _ = make_dataset(games[start:start + GAMES_PER_CHUNK])
+        chunk_loader = DataLoader(chunk_set, batch_size=batch_size, shuffle=shuffle)
+        for features, targets in chunk_loader:
+            yield features, targets
+
+
 def infer_individual(model, boards):
     """Run inference on a list of chess.Board objects."""
     # Convert all boards to arrays
     board_arrays = []
     for board in boards:
         board_arrays.append(board_to_array(board))
-
-    
-
-
 
 def run_inference(args):
     """Runs inference based on provided arguments."""
@@ -233,21 +249,18 @@ def run_training(args):
     # atleast the test portion should be saved for a file so we use it during inference or something.
     splits = split_games(games)
 
-    # Build tensors for train and validation
-    # the "labels" are kinda reduntant since the scorings are already in the tensor,
-    # but they make it easy to get the baseline
-    train_set, train_labels = make_dataset(splits["train"])
-    val_set, _ = make_dataset(splits["validation"])
-
-    # Get the baseline value to compare to.
-    baseline = sum(train_labels) / len(train_labels)
-    # Shows how many entries are being trained on and validated with and what the baseline is
-    print(f"train positions: {len(train_set)}, validation positions: {len(val_set)}, "
-          f"baseline (train mean): {baseline:.4f}")
-
-    # Build the torch data loaders.
-    train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
-    val_loader = DataLoader(val_set, batch_size=args.batch_size)
+    # The tensors are now made a chunk of games at a time while training (see make_batches),
+    # so here we only need the baseline: the average eval of the training positions.
+    total = 0.0
+    count = 0
+    for record in splits["train"]:
+        for board, score in evaluated_positions(record):
+            total += score
+            count += 1
+    baseline = total / count
+    # Shows how many games are being trained on and validated with and what the baseline is
+    print(f"train games: {len(splits['train'])}, validation games: {len(splits['validation'])}, "
+          f"train positions: {count}, baseline (train mean): {baseline:.4f}")
 
     # If there are already weights given, start there, otherwise init a fresh model. 
     # Makes sure to move everything to the correct device
@@ -260,8 +273,8 @@ def run_training(args):
     criterion = nn.MSELoss()
 
     # Train
-    train_model(model, optimizer, criterion, train_loader, val_loader,
-                args.epochs, baseline, checkpoint_path=args.checkpoint_path)
+    train_model(model, optimizer, criterion, splits["train"], splits["validation"],
+                args.batch_size, args.epochs, baseline, checkpoint_path=args.checkpoint_path)
     print("Done.")
 
 
