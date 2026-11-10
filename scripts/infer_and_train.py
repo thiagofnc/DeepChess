@@ -191,6 +191,17 @@ def make_dataset(games):
     return TensorDataset(features, targets), labels
 
 
+def infer_individual(model, boards):
+    """Run inference on a list of chess.Board objects."""
+    # Convert all boards to arrays
+    board_arrays = []
+    for board in boards:
+        board_arrays.append(board_to_array(board))
+
+    
+
+
+
 def run_inference(args):
     """Runs inference based on provided arguments."""
     # Inference data: x is board position, y is eval
