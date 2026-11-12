@@ -24,7 +24,7 @@ Importing the file is clean. Other scripts can use it without trouble. The comma
 
 ## Results so far
 
-The CNN is fairly accurate and currently gets about 1.43 MSE on the evaluation of a given position. This indicates it has learned the rules to chess very well.
+The CNN is fairly accurate and currently gets about 2.12 validation MSE on the evaluation of a given position. This indicates it has learned the rules to chess very well.
 
 ### Evaluate saved weights
 
