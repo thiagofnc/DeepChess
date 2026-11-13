@@ -109,3 +109,9 @@ The board is always oriented from White's side and is not flipped for the side t
 `local_data/`: Folder for any data that should not be included in the repo. Does not exist in repo. Training checkpoints are saved here by default.
 
 `tests/`: Folder for testing scripts.
+
+## web-ui 
+For web-ui information, see `web/README.md`
+
+## AI Usage Disclaimer
+All code in `web/` used AI. Helper scripts `download_data`, `show_record`, `train_chess_data.py`, and `chess_data` used AI. tests used AI.
