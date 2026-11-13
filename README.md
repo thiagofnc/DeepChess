@@ -109,10 +109,3 @@ The board is always oriented from White's side and is not flipped for the side t
 `local_data/`: Folder for any data that should not be included in the repo. Does not exist in repo. Training checkpoints are saved here by default.
 
 `tests/`: Folder for testing scripts.
-
-## TODO
-
-- Get new test data from split instead of reusing file. Games may overlap with training games currently.
-- Consider different optimizers.
-- Can set up next move prediction by checking all possible positions to move to scores and picking whats best (or another strategy)
-- A TUI chess board to play would be neat
