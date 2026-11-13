@@ -24,7 +24,7 @@ Importing the file is clean. Other scripts can use it without trouble. The comma
 
 ## Results so far
 
-The CNN is very accurate and currently gets about 0.6 MSE on the evaluation of a given position. This is very good and indicates it has learned the rules to chess very well.
+The CNN is fairly accurate and currently gets about 2.12 validation MSE on the evaluation of a given position. This indicates it has learned the rules to chess very well.
 
 ### Evaluate saved weights
 
@@ -109,10 +109,3 @@ The board is always oriented from White's side and is not flipped for the side t
 `local_data/`: Folder for any data that should not be included in the repo. Does not exist in repo. Training checkpoints are saved here by default.
 
 `tests/`: Folder for testing scripts.
-
-## TODO
-
-- Get new test data from split instead of reusing file. Games may overlap with training games currently.
-- Consider different optimizers.
-- Can set up next move prediction by checking all possible positions to move to scores and picking whats best (or another strategy)
-- A TUI chess board to play would be neat
